@@ -14,8 +14,10 @@
   "license": "MIT",
   "dependencies": {
     "@rescript/core": "^1.6.1",
+    "rescript": "^11.1.4"
+  },
+  "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.0",
-    "rescript": "^11.1.4",
     "rollup": "^4.31.0"
   }
 }

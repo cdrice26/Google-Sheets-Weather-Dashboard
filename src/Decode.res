@@ -26,7 +26,9 @@ let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location =
         place
         ->Js.Json.decodeObject
         ->Belt.Option.flatMap(obj => obj->Js.Dict.get("latitude"))
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
+        ->Belt.Option.flatMap(Js.Json.decodeString)
+        ->Belt.Option.getWithDefault("0.0")
+        ->Belt.Float.fromString
         ->Belt.Option.getWithDefault(0.0)
       }
       let longitude = switch firstPlace {
@@ -35,7 +37,9 @@ let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location =
         place
         ->Js.Json.decodeObject
         ->Belt.Option.flatMap(obj => obj->Js.Dict.get("longitude"))
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
+        ->Belt.Option.flatMap(Js.Json.decodeString)
+        ->Belt.Option.getWithDefault("0.0")
+        ->Belt.Float.fromString
         ->Belt.Option.getWithDefault(0.0)
       }
 

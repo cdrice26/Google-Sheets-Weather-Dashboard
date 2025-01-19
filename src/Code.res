@@ -98,22 +98,6 @@ let updateHourlyData = (
   setColumn(sheet, 6, Some(hourly.relativeHumidities->Belt.Array.map(prob => #float(prob))))
   setColumn(sheet, 7, Some(hourly.windSpeeds->Belt.Array.map(prob => #float(prob))))
   setColumn(sheet, 8, Some(hourly.windGusts->Belt.Array.map(prob => #float(prob))))
-
-  // Delete rows that are in the past
-  let range = sheet->GoogleAppsScript.Sheet.getDataRange
-  let hourlyData = range->GoogleAppsScript.Range.getValues
-  hourlyData->Array.forEachWithIndex((row: array<'a>, index) => {
-    switch row[0] {
-    | dateValue
-      if switch dateValue {
-      | Some(s) => Js.Date.fromString(s)
-      | None => Js.Date.make()
-      }->Js.Date.getTime < Js.Date.make()->Js.Date.getTime =>
-      // Delete row if date is in the past (1-indexed, so add 1 to index)
-      sheet->GoogleAppsScript.Sheet.deleteRow(index + 2)
-    | _ => ()
-    }
-  })
 }
 
 let updateDailyData = (

@@ -1,0 +1,2 @@
+removeExportsPlugin.mjs linguist:ignore
+rollup.config.mjs linguist:ignore

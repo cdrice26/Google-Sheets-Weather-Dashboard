@@ -1,0 +1,21 @@
+{
+  "name": "google-sheets-weather-dashboard",
+  "version": "1.0.0",
+  "description": "A weather app - in google sheets!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "res:build": "rescript",
+    "res:clean": "rescript clean",
+    "res:dev": "rescript -w",
+    "build": "rescript && rollup -c && clasp push"
+  },
+  "author": "Caleb Rice",
+  "license": "MIT",
+  "dependencies": {
+    "@rescript/core": "^1.6.1",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "rescript": "^11.1.4",
+    "rollup": "^4.31.0"
+  }
+}

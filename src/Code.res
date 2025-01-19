@@ -6,12 +6,24 @@ external getActiveSpreadsheet: unit => GoogleAppsScript.Spreadsheet.spreadsheet 
 @scope("ScriptApp") @val
 external newTrigger: string => GoogleAppsScript.Triggers.trigger = "newTrigger"
 
+/** 
+ * Retrieves geographical coordinates for a given ZIP code using the Zippopotam.us API.
+ * @param zip The ZIP code to look up
+ * @returns An object containing latitude, longitude, and place name
+ */
 let getCoords = zip => {
   let resp = fetch(`https://api.zippopotam.us/us/${zip}`)
   let data = parseJSON(resp)
   Decode.decodeLocationResponse(data)
 }
 
+/** 
+ * Fetches weather data from the Open-Meteo API for given latitude and longitude.
+ * Retrieves current, hourly, and daily weather information.
+ * @param latitude The latitude of the location
+ * @param longitude The longitude of the location
+ * @returns An object containing current, hourly, and daily weather data
+ */
 let getWeather = (latitude, longitude) => {
   let latitude = Js.Float.toString(latitude)
   let longitude = Js.Float.toString(longitude)
@@ -22,6 +34,12 @@ let getWeather = (latitude, longitude) => {
   Decode.decodeWeatherResponse(data)
 }
 
+/**
+ * Sets the values of a specific column in a Google Sheets spreadsheet.
+ * @param sheet The Google Sheets sheet to modify
+ * @param colIndex The column index to set values in
+ * @param parameter The values to set in the column, or None to clear the column
+ */
 let setColumn = (sheet: GoogleAppsScript.Sheet.sheet, colIndex, parameter) => {
   switch parameter {
   | None =>
@@ -54,12 +72,24 @@ let setColumn = (sheet: GoogleAppsScript.Sheet.sheet, colIndex, parameter) => {
   }
 }
 
+/**
+ * Updates a specific cell in a Google Sheets spreadsheet with a given value.
+ * @param sheet The Google Sheets sheet to modify
+ * @param cell The cell reference (e.g. "D10")
+ * @param value The string value to set in the cell
+ */
 let updateCell = (sheet: GoogleAppsScript.Sheet.sheet, cell: string, value: string) => {
   sheet
   ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str(cell))
   ->GoogleAppsScript.Range.setValue(GoogleAppsScript.Range.String(value))
 }
 
+/**
+ * Updates the current weather data in a Google Sheets spreadsheet.
+ * Populates cells with temperature, apparent temperature, precipitation, and humidity.
+ * @param current The current weather data object
+ * @param sheet The Google Sheets sheet to update
+ */
 let updateCurrentData = (
   current: APIResponses.Weather.currentWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
@@ -76,9 +106,26 @@ let updateCurrentData = (
   sheet->updateCell("D16", Js.Float.toString(current.relativeHumidity) ++ " %")
 }
 
+/**
+ * Converts an array of dates to a Some-wrapped array of date values for spreadsheet column setting.
+ * @param dates Array of Js.Date.t to convert
+ * @returns Some-wrapped array of date values
+ */
 let dateify = (dates: array<Js.Date.t>) => Some(dates->Belt.Array.map(time => #date(time)))
+
+/**
+ * Converts an array of floats to a Some-wrapped array of float values for spreadsheet column setting.
+ * @param floats Array of float values to convert
+ * @returns Some-wrapped array of float values
+ */
 let floatify = (floats: array<float>) => Some(floats->Belt.Array.map(temp => #float(temp)))
 
+/**
+ * Updates the hourly weather data in a Google Sheets spreadsheet.
+ * Populates columns with times, temperatures, precipitation, humidity, wind speeds, and wind gusts.
+ * @param hourly The hourly weather data object
+ * @param sheet The Google Sheets sheet to update
+ */
 let updateHourlyData = (
   hourly: APIResponses.Weather.hourlyWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
@@ -94,6 +141,12 @@ let updateHourlyData = (
   setColumn(sheet, 8, floatify(hourly.windGusts))
 }
 
+/**
+ * Updates the daily weather data in a Google Sheets spreadsheet.
+ * Populates columns with times, max/min temperatures, precipitation, and wind speeds.
+ * @param daily The daily weather data object
+ * @param sheet The Google Sheets sheet to update
+ */
 let updateDailyData = (
   daily: APIResponses.Weather.dailyWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
@@ -107,6 +160,11 @@ let updateDailyData = (
   setColumn(sheet, 7, floatify(daily.maxWindSpeeds))
 }
 
+/** 
+ * Updates the entire weather dashboard with the latest weather information.
+ * Retrieves coordinates based on ZIP code, fetches weather data, and updates 
+ * interface, hourly, and daily sheets with current weather information.
+ */
 let updateWeather = () => {
   let workbook = getActiveSpreadsheet()
   let interface = workbook->GoogleAppsScript.Spreadsheet.getSheetByName("interface")
@@ -133,8 +191,16 @@ let updateWeather = () => {
   updateDailyData(daily, dailySheet)
 }
 
+/** 
+ * Event handler for button click.
+ * Triggers the updateWeather function to refresh weather data.
+ */
 let onClick = () => updateWeather()
 
+/** 
+ * Creates an automatic trigger to run updateWeather when the spreadsheet is opened.
+ * This ensures the weather data is refreshed each time the spreadsheet is opened.
+ */
 let createOnOpenTrigger = () => {
   let spreadsheet = getActiveSpreadsheet()
   newTrigger("updateWeather")

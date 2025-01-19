@@ -1,3 +1,9 @@
+/**
+ * Safely extracts a string property from a JSON object.
+ * @param data Optional JSON data to extract from
+ * @param property Name of the property to extract
+ * @returns Extracted string or empty string if not found
+ */
 let decodeStringProperty = (data: option<Js.Json.t>, property: string): string => {
   switch data {
   | None => ""
@@ -10,6 +16,12 @@ let decodeStringProperty = (data: option<Js.Json.t>, property: string): string =
   }
 }
 
+/**
+ * Extracts and converts a string property to a float, with a default of 0.0 if conversion fails.
+ * @param data Optional JSON data to extract from
+ * @param property Name of the property to extract and convert
+ * @returns Extracted float value or 0.0 if conversion fails
+ */
 let decodeStringPropertyAsFloat = (data: option<Js.Json.t>, property: string): float => {
   data
   ->decodeStringProperty(property)
@@ -17,12 +29,24 @@ let decodeStringPropertyAsFloat = (data: option<Js.Json.t>, property: string): f
   ->Belt.Option.getWithDefault(0.0)
 }
 
+/**
+ * Safely extracts a number property from a dictionary, defaulting to 0.0 if not found.
+ * @param obj Dictionary to extract from
+ * @param property Name of the number property to extract
+ * @returns Extracted number or 0.0 if not found
+ */
 let decodeNumberProperty = (obj: Js.Dict.t<'a>, property: string) =>
   obj
   ->Js.Dict.get(property)
   ->Belt.Option.flatMap(Js.Json.decodeNumber)
   ->Belt.Option.getWithDefault(0.0)
 
+/**
+ * Extracts an array of numbers from a dictionary, defaulting to an empty array if not found.
+ * @param obj Dictionary to extract from
+ * @param property Name of the number array property to extract
+ * @returns Array of numbers or empty array if not found
+ */
 let decodeNumberArrayProperty = (obj: Js.Dict.t<'a>, property: string) =>
   obj
   ->Js.Dict.get(property)
@@ -32,6 +56,12 @@ let decodeNumberArrayProperty = (obj: Js.Dict.t<'a>, property: string) =>
   )
   ->Belt.Option.getWithDefault([])
 
+/**
+ * Extracts an array of dates from a dictionary, defaulting to an empty array if not found.
+ * @param obj Dictionary to extract from
+ * @param property Name of the date array property to extract
+ * @returns Array of dates or empty array if not found
+ */
 let decodeStringArrayPropertyAsDates = (obj: Js.Dict.t<'a>, property: string) =>
   obj
   ->Js.Dict.get(property)
@@ -46,6 +76,11 @@ let decodeStringArrayPropertyAsDates = (obj: Js.Dict.t<'a>, property: string) =>
   )
   ->Belt.Option.getWithDefault([])
 
+/**
+ * Decodes a location response from a JSON object.
+ * @param data JSON data to decode
+ * @returns Decoded location response or default location if decoding fails
+ */
 let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location => {
   // Use Js.Json.Decode to safely extract values
   try {
@@ -87,6 +122,11 @@ let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location =
   }
 }
 
+/**
+ * Decodes a weather response from a JSON object.
+ * @param data JSON data to decode
+ * @returns Decoded weather response or default weather response if decoding fails
+ */
 let decodeWeatherResponse = (data: Js.Json.t): APIResponses.Weather.weatherResponse => {
   try {
     let current: APIResponses.Weather.currentWeather =

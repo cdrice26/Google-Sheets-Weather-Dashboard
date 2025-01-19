@@ -54,63 +54,57 @@ let setColumn = (sheet: GoogleAppsScript.Sheet.sheet, colIndex, parameter) => {
   }
 }
 
+let updateCell = (sheet: GoogleAppsScript.Sheet.sheet, cell: string, value: string) => {
+  sheet
+  ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str(cell))
+  ->GoogleAppsScript.Range.setValue(GoogleAppsScript.Range.String(value))
+}
+
 let updateCurrentData = (
   current: APIResponses.Weather.currentWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
 ) => {
-  sheet
-  ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str("D10"))
-  ->GoogleAppsScript.Range.setValue(
-    GoogleAppsScript.Range.String(
-      string_of_int(Js.Math.round(current.temperature)->Belt.Float.toInt) ++ "\u00B0" ++ "F",
-    ),
+  sheet->updateCell(
+    "D10",
+    string_of_int(Js.Math.round(current.temperature)->Belt.Float.toInt) ++ "\u00B0" ++ "F",
   )
-  sheet
-  ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str("D12"))
-  ->GoogleAppsScript.Range.setValue(
-    GoogleAppsScript.Range.String(
-      string_of_int(Js.Math.round(current.apparentTemperature)->Belt.Float.toInt) ++
-      "\u00B0" ++ "F",
-    ),
+  sheet->updateCell(
+    "D12",
+    string_of_int(Js.Math.round(current.apparentTemperature)->Belt.Float.toInt) ++ "\u00B0" ++ "F",
   )
-  sheet
-  ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str("D14"))
-  ->GoogleAppsScript.Range.setValue(
-    GoogleAppsScript.Range.String(Js.Float.toString(current.precipitation) ++ " in"),
-  )
-  sheet
-  ->GoogleAppsScript.Sheet.getRange(GoogleAppsScript.Sheet.Str("D16"))
-  ->GoogleAppsScript.Range.setValue(
-    GoogleAppsScript.Range.String(Js.Float.toString(current.relativeHumidity) ++ " %"),
-  )
+  sheet->updateCell("D14", Js.Float.toString(current.precipitation) ++ " in")
+  sheet->updateCell("D16", Js.Float.toString(current.relativeHumidity) ++ " %")
 }
+
+let dateify = (dates: array<Js.Date.t>) => Some(dates->Belt.Array.map(time => #date(time)))
+let floatify = (floats: array<float>) => Some(floats->Belt.Array.map(temp => #float(temp)))
 
 let updateHourlyData = (
   hourly: APIResponses.Weather.hourlyWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
 ) => {
   // Hourly Data
-  setColumn(sheet, 1, Some(hourly.times->Belt.Array.map(time => #date(time))))
-  setColumn(sheet, 2, Some(hourly.temperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 3, Some(hourly.apparentTemperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 4, Some(hourly.precipitationProbabilities->Belt.Array.map(prob => #float(prob))))
-  setColumn(sheet, 5, Some(hourly.precipitations->Belt.Array.map(prob => #float(prob))))
-  setColumn(sheet, 6, Some(hourly.relativeHumidities->Belt.Array.map(prob => #float(prob))))
-  setColumn(sheet, 7, Some(hourly.windSpeeds->Belt.Array.map(prob => #float(prob))))
-  setColumn(sheet, 8, Some(hourly.windGusts->Belt.Array.map(prob => #float(prob))))
+  setColumn(sheet, 1, dateify(hourly.times))
+  setColumn(sheet, 2, floatify(hourly.temperatures))
+  setColumn(sheet, 3, floatify(hourly.apparentTemperatures))
+  setColumn(sheet, 4, floatify(hourly.precipitationProbabilities))
+  setColumn(sheet, 5, floatify(hourly.precipitations))
+  setColumn(sheet, 6, floatify(hourly.relativeHumidities))
+  setColumn(sheet, 7, floatify(hourly.windSpeeds))
+  setColumn(sheet, 8, floatify(hourly.windGusts))
 }
 
 let updateDailyData = (
   daily: APIResponses.Weather.dailyWeather,
   sheet: GoogleAppsScript.Sheet.sheet,
 ) => {
-  setColumn(sheet, 1, Some(daily.times->Belt.Array.map(time => #date(time))))
-  setColumn(sheet, 2, Some(daily.maxTemperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 3, Some(daily.minTemperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 4, Some(daily.maxApparentTemperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 5, Some(daily.minApparentTemperatures->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 6, Some(daily.precipitationSums->Belt.Array.map(temp => #float(temp))))
-  setColumn(sheet, 7, Some(daily.maxWindSpeeds->Belt.Array.map(temp => #float(temp))))
+  setColumn(sheet, 1, dateify(daily.times))
+  setColumn(sheet, 2, floatify(daily.maxTemperatures))
+  setColumn(sheet, 3, floatify(daily.minTemperatures))
+  setColumn(sheet, 4, floatify(daily.maxApparentTemperatures))
+  setColumn(sheet, 5, floatify(daily.minApparentTemperatures))
+  setColumn(sheet, 6, floatify(daily.precipitationSums))
+  setColumn(sheet, 7, floatify(daily.maxWindSpeeds))
 }
 
 let updateWeather = () => {

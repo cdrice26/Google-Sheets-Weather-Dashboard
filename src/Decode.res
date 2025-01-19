@@ -1,3 +1,51 @@
+let decodeStringProperty = (data: option<Js.Json.t>, property: string): string => {
+  switch data {
+  | None => ""
+  | Some(json) =>
+    json
+    ->Js.Json.decodeObject
+    ->Belt.Option.flatMap(obj => obj->Js.Dict.get(property))
+    ->Belt.Option.flatMap(Js.Json.decodeString)
+    ->Belt.Option.getWithDefault("")
+  }
+}
+
+let decodeStringPropertyAsFloat = (data: option<Js.Json.t>, property: string): float => {
+  data
+  ->decodeStringProperty(property)
+  ->Belt.Float.fromString
+  ->Belt.Option.getWithDefault(0.0)
+}
+
+let decodeNumberProperty = (obj: Js.Dict.t<'a>, property: string) =>
+  obj
+  ->Js.Dict.get(property)
+  ->Belt.Option.flatMap(Js.Json.decodeNumber)
+  ->Belt.Option.getWithDefault(0.0)
+
+let decodeNumberArrayProperty = (obj: Js.Dict.t<'a>, property: string) =>
+  obj
+  ->Js.Dict.get(property)
+  ->Belt.Option.flatMap(Js.Json.decodeArray)
+  ->Belt.Option.map(vals =>
+    vals->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
+  )
+  ->Belt.Option.getWithDefault([])
+
+let decodeStringArrayPropertyAsDates = (obj: Js.Dict.t<'a>, property: string) =>
+  obj
+  ->Js.Dict.get(property)
+  ->Belt.Option.flatMap(Js.Json.decodeArray)
+  ->Belt.Option.map(dates =>
+    dates->Array.map(d =>
+      d
+      ->Js.Json.decodeString
+      ->Belt.Option.map(Js.Date.fromString)
+      ->Belt.Option.getWithDefault(Js.Date.make())
+    )
+  )
+  ->Belt.Option.getWithDefault([])
+
 let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location => {
   // Use Js.Json.Decode to safely extract values
   try {
@@ -20,38 +68,9 @@ let decodeLocationResponse = (data: Js.Json.t): APIResponses.Location.location =
       let firstPlace = places[0]
 
       // Safely extract latitude, longitude, and place name
-      let latitude = switch firstPlace {
-      | None => 0.0
-      | Some(place) =>
-        place
-        ->Js.Json.decodeObject
-        ->Belt.Option.flatMap(obj => obj->Js.Dict.get("latitude"))
-        ->Belt.Option.flatMap(Js.Json.decodeString)
-        ->Belt.Option.getWithDefault("0.0")
-        ->Belt.Float.fromString
-        ->Belt.Option.getWithDefault(0.0)
-      }
-      let longitude = switch firstPlace {
-      | None => 0.0
-      | Some(place) =>
-        place
-        ->Js.Json.decodeObject
-        ->Belt.Option.flatMap(obj => obj->Js.Dict.get("longitude"))
-        ->Belt.Option.flatMap(Js.Json.decodeString)
-        ->Belt.Option.getWithDefault("0.0")
-        ->Belt.Float.fromString
-        ->Belt.Option.getWithDefault(0.0)
-      }
-
-      let placeName = switch firstPlace {
-      | None => ""
-      | Some(place) =>
-        place
-        ->Js.Json.decodeObject
-        ->Belt.Option.flatMap(obj => obj->Js.Dict.get("place name"))
-        ->Belt.Option.flatMap(Js.Json.decodeString)
-        ->Belt.Option.getWithDefault("")
-      }
+      let latitude = firstPlace->decodeStringPropertyAsFloat("latitude")
+      let longitude = firstPlace->decodeStringPropertyAsFloat("longitude")
+      let placeName = firstPlace->decodeStringProperty("place name")
 
       {
         latitude,
@@ -76,22 +95,14 @@ let decodeWeatherResponse = (data: Js.Json.t): APIResponses.Weather.weatherRespo
       ->Belt.Option.flatMap(obj => obj->Js.Dict.get("current"))
       ->Belt.Option.flatMap(Js.Json.decodeObject)
       ->Belt.Option.map(currentObj => {
-        APIResponses.Weather.temperature: currentObj
-        ->Js.Dict.get("temperature_2m")
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
-        ->Belt.Option.getWithDefault(0.0),
-        APIResponses.Weather.relativeHumidity: currentObj
-        ->Js.Dict.get("relative_humidity_2m")
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
-        ->Belt.Option.getWithDefault(0.0),
-        APIResponses.Weather.apparentTemperature: currentObj
-        ->Js.Dict.get("apparent_temperature")
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
-        ->Belt.Option.getWithDefault(0.0),
-        APIResponses.Weather.precipitation: currentObj
-        ->Js.Dict.get("precipitation")
-        ->Belt.Option.flatMap(Js.Json.decodeNumber)
-        ->Belt.Option.getWithDefault(0.0),
+        APIResponses.Weather.temperature: currentObj->decodeNumberProperty("temperature_2m"),
+        APIResponses.Weather.relativeHumidity: currentObj->decodeNumberProperty(
+          "relative_humidity_2m",
+        ),
+        APIResponses.Weather.apparentTemperature: currentObj->decodeNumberProperty(
+          "apparent_temperature",
+        ),
+        APIResponses.Weather.precipitation: currentObj->decodeNumberProperty("precipitation"),
       })
       ->Belt.Option.getWithDefault({
         temperature: 0.0,
@@ -106,68 +117,20 @@ let decodeWeatherResponse = (data: Js.Json.t): APIResponses.Weather.weatherRespo
       ->Belt.Option.flatMap(obj => obj->Js.Dict.get("hourly"))
       ->Belt.Option.flatMap(Js.Json.decodeObject)
       ->Belt.Option.map(hourlyObj => {
-        APIResponses.Weather.times: hourlyObj
-        ->Js.Dict.get("time")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(times =>
-          times->Array.map(
-            t =>
-              t
-              ->Js.Json.decodeString
-              ->Belt.Option.map(Js.Date.fromString)
-              ->Belt.Option.getWithDefault(Js.Date.make()),
-          )
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.temperatures: hourlyObj
-        ->Js.Dict.get("temperature_2m")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.relativeHumidities: hourlyObj
-        ->Js.Dict.get("relative_humidity_2m")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(humidities =>
-          humidities->Array.map(h => h->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.apparentTemperatures: hourlyObj
-        ->Js.Dict.get("apparent_temperature")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.precipitationProbabilities: hourlyObj
-        ->Js.Dict.get("precipitation_probability")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(probs =>
-          probs->Array.map(p => p->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.precipitations: hourlyObj
-        ->Js.Dict.get("precipitation")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(precs =>
-          precs->Array.map(p => p->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.windSpeeds: hourlyObj
-        ->Js.Dict.get("wind_speed_10m")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(speeds =>
-          speeds->Array.map(s => s->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.windGusts: hourlyObj
-        ->Js.Dict.get("wind_gusts_10m")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(gusts =>
-          gusts->Array.map(g => g->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
+        APIResponses.Weather.times: hourlyObj->decodeStringArrayPropertyAsDates("time"),
+        APIResponses.Weather.temperatures: hourlyObj->decodeNumberArrayProperty("temperature_2m"),
+        APIResponses.Weather.relativeHumidities: hourlyObj->decodeNumberArrayProperty(
+          "relative_humidity_2m",
+        ),
+        APIResponses.Weather.apparentTemperatures: hourlyObj->decodeNumberArrayProperty(
+          "apparent_temperature",
+        ),
+        APIResponses.Weather.precipitationProbabilities: hourlyObj->decodeNumberArrayProperty(
+          "precipitation_probability",
+        ),
+        APIResponses.Weather.precipitations: hourlyObj->decodeNumberArrayProperty("precipitation"),
+        APIResponses.Weather.windSpeeds: hourlyObj->decodeNumberArrayProperty("wind_speed_10m"),
+        APIResponses.Weather.windGusts: hourlyObj->decodeNumberArrayProperty("wind_gusts_10m"),
       })
       ->Belt.Option.getWithDefault({
         times: [],
@@ -186,61 +149,25 @@ let decodeWeatherResponse = (data: Js.Json.t): APIResponses.Weather.weatherRespo
       ->Belt.Option.flatMap(obj => obj->Js.Dict.get("daily"))
       ->Belt.Option.flatMap(Js.Json.decodeObject)
       ->Belt.Option.map(dailyObj => {
-        APIResponses.Weather.times: dailyObj
-        ->Js.Dict.get("time")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(times =>
-          times->Array.map(
-            t =>
-              t
-              ->Js.Json.decodeString
-              ->Belt.Option.map(Js.Date.fromString)
-              ->Belt.Option.getWithDefault(Js.Date.make()),
-          )
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.maxTemperatures: dailyObj
-        ->Js.Dict.get("temperature_2m_max")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.minTemperatures: dailyObj
-        ->Js.Dict.get("temperature_2m_min")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.maxApparentTemperatures: dailyObj
-        ->Js.Dict.get("apparent_temperature_max")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.minApparentTemperatures: dailyObj
-        ->Js.Dict.get("apparent_temperature_min")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(temps =>
-          temps->Array.map(t => t->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.precipitationSums: dailyObj
-        ->Js.Dict.get("precipitation_sum")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(precs =>
-          precs->Array.map(p => p->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
-        APIResponses.Weather.maxWindSpeeds: dailyObj
-        ->Js.Dict.get("wind_speed_10m_max")
-        ->Belt.Option.flatMap(Js.Json.decodeArray)
-        ->Belt.Option.map(speeds =>
-          speeds->Array.map(s => s->Js.Json.decodeNumber->Belt.Option.getWithDefault(0.0))
-        )
-        ->Belt.Option.getWithDefault([]),
+        APIResponses.Weather.times: dailyObj->decodeStringArrayPropertyAsDates("time"),
+        APIResponses.Weather.maxTemperatures: dailyObj->decodeNumberArrayProperty(
+          "temperature_2m_max",
+        ),
+        APIResponses.Weather.minTemperatures: dailyObj->decodeNumberArrayProperty(
+          "temperature_2m_min",
+        ),
+        APIResponses.Weather.maxApparentTemperatures: dailyObj->decodeNumberArrayProperty(
+          "apparent_temperature_max",
+        ),
+        APIResponses.Weather.minApparentTemperatures: dailyObj->decodeNumberArrayProperty(
+          "apparent_temperature_min",
+        ),
+        APIResponses.Weather.precipitationSums: dailyObj->decodeNumberArrayProperty(
+          "precipitation_sum",
+        ),
+        APIResponses.Weather.maxWindSpeeds: dailyObj->decodeNumberArrayProperty(
+          "wind_speed_10m_max",
+        ),
       })
       ->Belt.Option.getWithDefault({
         times: [],

@@ -11,7 +11,7 @@ This project requires several steps to get it up and running.
   - `rootDir`, which should be the absolute path to the `dist/` directory in this repo.
 6. Run `npm run build` to upload this script.
 7. Use the spreadsheet! It'll automatically load the ZIP you input on launch, and you can always enter a new ZIP and click update to get new weather.
-
+  - Note that the first time you run it, you'll have to authorize the script. Google will present lots of scary warnings, but that's just because this isn't an officially published script.
 ## External APIs
 This relies on [Zippopotam.us](https://zippopotam.us) and [Open-Meteo](https://open-meteo.com). Thanks to the maintainers of these services!
 

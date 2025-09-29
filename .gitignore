@@ -4,5 +4,5 @@
 .bsb.lock
 .merlin
 **/*.res.mjs
-dist
+dist/Code.res.gs
 .clasp.json
